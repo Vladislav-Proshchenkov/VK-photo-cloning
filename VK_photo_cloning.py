@@ -3,8 +3,10 @@ import json
 import pprint
 import time
 
-vk_token = 'vk1.a.7FN83kF7v6JuyFlgQMoK2jcmS3RZHKzt0jBrwr4sR4U3stmUPlgsjhkPS5FlKNyE07VMzuuCNW_qOElSHvPwg1N3ZHc1Tpwb4EQ9tJBGGTFxTOv3fl4rMLcx4khzhvs3JWRYH3vA72BKySdI5xzD8eZ8C0s0Zixyivd7A5RRwEPmk74duicLby0SbtjJ89pW'
-# https://<адрес-сервера>/method/<имя-API-метода>?<параметры>
+vk_token = ('vk1.a.Wq13QYbHJxLIVRYS-lkf4DUPVs7_iBFuGeOVYK21D5tPDZi1puOcmDbjkm5PTPOrxGEChI4DaohNSzap8B4YCEIuF90D815m'
+            'e9JSkfDDjuZo7BRhQhPfQjsdhYQ5jaVDIAnLGfCM1G7ycogA0YsOFJtnvClnJO5-CXFy-ZFTgSfnaqMKcmHJLvZRtZlnhL0d')
+URL_Yandex = "https://cloud-api.yandex.net/v1/disk/resources"
+URL_Yandex_upload = "https://cloud-api.yandex.net/v1/disk/resources/upload"
 
 class VK_photo_cloning:
     URL = 'https://api.vk.com/method/'
@@ -22,6 +24,13 @@ class VK_photo_cloning:
             'extended': 1
         }
         response = requests.get(self.URL + 'photos.get', params=params)
+        #pprint.pprint(response.json())
+        status_code = response.status_code
+        if status_code != 200:
+            print('Ошибка получения данных')
+            exit()
+        if response.json()['response']['count'] == 0:
+            print('Нет фотографий')
         if album_id == 'wall':
             with open('wall.json', 'w', encoding='utf-8') as file:
                 json.dump(response.json(), file, indent=2, ensure_ascii=False)
@@ -30,16 +39,58 @@ class VK_photo_cloning:
                 json.dump(response.json(), file, indent=2, ensure_ascii=False)
         return response.json()
 
+    def create_folder(self):
+        params = {
+            'path': 'VK photos',
+        }
+        headers = {
+            'Authorization': f'OAuth {yandex_token}'
+        }
+        response = requests.put(URL_Yandex, headers=headers, params=params)
+        params = {
+            'path': f'VK photos/{album}',
+        }
+        response = requests.put(URL_Yandex, headers=headers, params=params)
+        #print(response.json())
+
     def clone_photos(self):
         photos = self.get_photos()
-        #pprint.pprint (photos)
+        self.create_folder()
+        max_photos = {}
+        new_names = {}
+        count = 0
         for photo in photos['response']['items']:
             max_photo = max(photo['sizes'], key=lambda x: x['height'])
-            url_photo = max_photo['url']
-            likes_count = photo['likes']['count']
             date_photo = photo['date']
-            print(url_photo, likes_count, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(date_photo)))
-
+            max_photos[count] = {'url_photo': max_photo['url'],
+                                 'likes_count': photo['likes']['count'],
+                                 'date_photo': time.strftime('%Y.%m.%d %H-%M-%S', time.localtime(date_photo)),
+                                 'name': photo['likes']['count']}
+            count += 1
+        for i, photo in max_photos.items():
+            if str(photo['likes_count']) not in new_names.values():
+                new_names[i] = str(photo['likes_count'])
+            else:
+                new_names[i] = f'{str(photo['likes_count'])} {photo['date_photo']}'
+        for key, value in new_names.items():
+            max_photos[key]['name'] = value
+        #pprint.pprint(max_photos)
+        for photo in max_photos.values():
+            params = {
+                'path': f'VK photos/{album}/{photo['name']}.jpg',
+                'overwrite': 'true'
+            }
+            headers = {
+                'Authorization': f'OAuth {yandex_token}'
+            }
+            response = requests.get(URL_Yandex_upload, headers=headers, params=params)
+            #print(response.json())
+            params = {
+                'url': photo['url_photo'],
+                'path': f'VK photos/{album}/{photo['name']}.jpg'
+            }
+            response = requests.post(URL_Yandex_upload, headers=headers, params=params)
+            #print(response.json())
 
 if __name__ == '__main__':
 
@@ -47,12 +98,14 @@ if __name__ == '__main__':
           '2 - фотографии профиля\n')
     album_id = input('Введите альбом: ')
     if album_id == '1':
-        album_id = 'wall'
+        album = 'wall'
     elif album_id == '2':
-        album_id = 'profile'
+        album = 'profile'
     else:
         print('Неверный альбом')
         exit()
-    owner_id = input('Введите пользователя: ') # мой id 680361694
-    user = VK_photo_cloning(vk_token, owner_id, album_id)
+    #owner_id = input('Введите пользователя: ') # мой id 680361694
+    owner_id = 680361694
+    yandex_token = input('Введите токен Яндекс.Диска: ')
+    user = VK_photo_cloning(vk_token, owner_id, album)
     user.clone_photos()
