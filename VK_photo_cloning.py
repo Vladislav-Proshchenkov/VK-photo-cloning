@@ -3,8 +3,8 @@ import json
 import pprint
 import time
 
-vk_token = ('vk1.a.Wq13QYbHJxLIVRYS-lkf4DUPVs7_iBFuGeOVYK21D5tPDZi1puOcmDbjkm5PTPOrxGEChI4DaohNSzap8B4YCEIuF90D815m'
-            'e9JSkfDDjuZo7BRhQhPfQjsdhYQ5jaVDIAnLGfCM1G7ycogA0YsOFJtnvClnJO5-CXFy-ZFTgSfnaqMKcmHJLvZRtZlnhL0d')
+vk_token = ('vk1.a.CwnNZGlT2x3rYVvl0DROSYwsWxbYSNi4I_rMkgu4MtwoJpFWi0ev1ua4X2SrrakK-QjyjoHjAldZhVXkxQPidNWEK5CMxAcg'
+            'HrCtuHLD_ilI_aHVC88c9tHuI0JBq2v3bK7fzGiHH3vWcEI8H0JYY3rivbcgLPH_XD2cj_7XL7S8fby1z4uCATTYBgjq9Bhu')
 URL_Yandex = "https://cloud-api.yandex.net/v1/disk/resources"
 URL_Yandex_upload = "https://cloud-api.yandex.net/v1/disk/resources/upload"
 
@@ -53,7 +53,7 @@ class VK_photo_cloning:
         response = requests.put(URL_Yandex, headers=headers, params=params)
         #print(response.json())
 
-    def clone_photos(self):
+    def max_photo_in_album(self):
         photos = self.get_photos()
         self.create_folder()
         max_photos = {}
@@ -74,10 +74,27 @@ class VK_photo_cloning:
                 new_names[i] = f'{str(photo['likes_count'])} {photo['date_photo']}'
         for key, value in new_names.items():
             max_photos[key]['name'] = value
-        #pprint.pprint(max_photos)
-        for photo in max_photos.values():
+        return max_photos
+
+    def clone_photos(self):
+        max_photos = self.max_photo_in_album()
+        print('Количество фотографий: ', len(max_photos))
+        quantity = int(input('Введите количество фотографий для копирования: '))
+        if quantity == 0:
+            print('Не выбрано ни одной фотографии')
+            exit()
+        elif quantity < 0:
+            print('Неверное значение')
+            exit()
+        elif quantity > len(max_photos):
+            print('Неверное значение')
+            exit()
+        open("download.json", "w").close()
+        for i in range(quantity):
+            with open('download.json', 'a', encoding='utf-8') as file:
+                json.dump(max_photos[i], file, indent=2, ensure_ascii=False)
             params = {
-                'path': f'VK photos/{album}/{photo['name']}.jpg',
+                'path': f'VK photos/{album}/{max_photos[i]['name']}.jpg',
                 'overwrite': 'true'
             }
             headers = {
@@ -86,11 +103,14 @@ class VK_photo_cloning:
             response = requests.get(URL_Yandex_upload, headers=headers, params=params)
             #print(response.json())
             params = {
-                'url': photo['url_photo'],
-                'path': f'VK photos/{album}/{photo['name']}.jpg'
+                'url': max_photos[i]['url_photo'],
+                'path': f'VK photos/{album}/{max_photos[i]['name']}.jpg',
+                'overwrite': 'true'
             }
             response = requests.post(URL_Yandex_upload, headers=headers, params=params)
-            #print(response.json())
+            # print(response.json())
+
+
 
 if __name__ == '__main__':
 
