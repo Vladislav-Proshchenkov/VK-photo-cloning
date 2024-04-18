@@ -1,10 +1,10 @@
 import requests
 import json
-import pprint
 import time
+from tqdm import tqdm
 
-vk_token = ('vk1.a.CwnNZGlT2x3rYVvl0DROSYwsWxbYSNi4I_rMkgu4MtwoJpFWi0ev1ua4X2SrrakK-QjyjoHjAldZhVXkxQPidNWEK5CMxAcg'
-            'HrCtuHLD_ilI_aHVC88c9tHuI0JBq2v3bK7fzGiHH3vWcEI8H0JYY3rivbcgLPH_XD2cj_7XL7S8fby1z4uCATTYBgjq9Bhu')
+vk_token = ('vk1.a.X2gmhh5LNmu08SOzhyj8bgPkvAF7O3J88UnW_X6h8Jo09xurQyvGAjHWlPB4xjll32B0GegAQlgbLbKZnQnQYah1o9yEKZ'
+            'an2TgrqnC99UJXmKGNs-gx2QVo0MSGD8hYymmR7NeqTDDD_ArAwpA_lmaSr2pR55X83Xpp0n3FMqq8MbKK1jji835bkg-Mi-bp')
 URL_Yandex = "https://cloud-api.yandex.net/v1/disk/resources"
 URL_Yandex_upload = "https://cloud-api.yandex.net/v1/disk/resources/upload"
 
@@ -24,10 +24,11 @@ class VK_photo_cloning:
             'extended': 1
         }
         response = requests.get(self.URL + 'photos.get', params=params)
-        #pprint.pprint(response.json())
-        status_code = response.status_code
-        if status_code != 200:
+        if response.status_code != 200:
             print('Ошибка получения данных')
+            exit()
+        if 'error' in response.json():
+            print('Неверный токен VK')
             exit()
         if response.json()['response']['count'] == 0:
             print('Нет фотографий')
@@ -46,12 +47,11 @@ class VK_photo_cloning:
         headers = {
             'Authorization': f'OAuth {yandex_token}'
         }
-        response = requests.put(URL_Yandex, headers=headers, params=params)
+        requests.put(URL_Yandex, headers=headers, params=params)
         params = {
             'path': f'VK photos/{album}',
         }
-        response = requests.put(URL_Yandex, headers=headers, params=params)
-        #print(response.json())
+        requests.put(URL_Yandex, headers=headers, params=params)
 
     def max_photo_in_album(self):
         photos = self.get_photos()
@@ -90,7 +90,7 @@ class VK_photo_cloning:
             print('Неверное значение')
             exit()
         open("download.json", "w").close()
-        for i in range(quantity):
+        for i in tqdm(range(quantity)):
             with open('download.json', 'a', encoding='utf-8') as file:
                 json.dump(max_photos[i], file, indent=2, ensure_ascii=False)
             params = {
@@ -100,17 +100,13 @@ class VK_photo_cloning:
             headers = {
                 'Authorization': f'OAuth {yandex_token}'
             }
-            response = requests.get(URL_Yandex_upload, headers=headers, params=params)
-            #print(response.json())
+            requests.get(URL_Yandex_upload, headers=headers, params=params)
             params = {
                 'url': max_photos[i]['url_photo'],
                 'path': f'VK photos/{album}/{max_photos[i]['name']}.jpg',
                 'overwrite': 'true'
             }
-            response = requests.post(URL_Yandex_upload, headers=headers, params=params)
-            # print(response.json())
-
-
+            requests.post(URL_Yandex_upload, headers=headers, params=params)
 
 if __name__ == '__main__':
 
@@ -124,8 +120,7 @@ if __name__ == '__main__':
     else:
         print('Неверный альбом')
         exit()
-    #owner_id = input('Введите пользователя: ') # мой id 680361694
-    owner_id = 680361694
-    yandex_token = input('Введите токен Яндекс.Диска: ')
+    owner_id = input('Введите пользователя: ')
+    yandex_token = input('https://yandex.ru/dev/disk/poligon/\nВведите токен Яндекс.Диска: ')
     user = VK_photo_cloning(vk_token, owner_id, album)
     user.clone_photos()

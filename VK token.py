@@ -1,4 +1,5 @@
 import requests
+import webbrowser
 
 params = {
     'client_id': '51902640',
@@ -11,4 +12,4 @@ params = {
 }
 
 responce = requests.get('https://oauth.vk.com/authorize', params=params)
-print(responce.url)
+webbrowser.open(responce.url,new=2)
