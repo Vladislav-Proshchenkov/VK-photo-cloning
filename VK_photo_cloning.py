@@ -1,6 +1,8 @@
-import requests
+from gc import freeze
+import pip
 import json
 import time
+import requests
 from tqdm import tqdm
 
 vk_token = ('vk1.a.X2gmhh5LNmu08SOzhyj8bgPkvAF7O3J88UnW_X6h8Jo09xurQyvGAjHWlPB4xjll32B0GegAQlgbLbKZnQnQYah1o9yEKZ'
